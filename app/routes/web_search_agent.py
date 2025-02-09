@@ -23,6 +23,7 @@ web_search_agent = Agent(
         "Search for multiple results and select the most relevant unique items.",
         "Search in multiple languages when specified.",
         "Provide structured and well-formatted responses.",
+        "if query about youtube, search for youtube videos and return the only the youtube video links."
     ],
 )
 
