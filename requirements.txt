@@ -1,4 +1,7 @@
 fastapi==0.109.2
 uvicorn==0.27.1
 pydantic==2.6.1
-python-dotenv==1.0.1 
+python-dotenv==1.0.1
+phidata==2.3.30
+googlesearch-python==1.2.3
+pycountry==23.12.11 
