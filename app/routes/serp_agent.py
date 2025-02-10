@@ -4,47 +4,48 @@ from typing import Optional, List
 import logging
 import asyncio
 from phi.agent import Agent
-from phi.tools.duckduckgo import DuckDuckGo
+from phi.tools.serpapi import SerpApi
 from phi.model.google import Gemini
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/websearch", tags=["websearch"])
+router = APIRouter(prefix="/serp", tags=["serp"])
 
-# Initialize the Web Search agent
-web_search_agent = Agent(
+# Initialize the SerpApi agent
+serp_agent = Agent(
     model=Gemini(id="gemini-1.5-flash"),
-    tools=[DuckDuckGo()],
+    tools=[SerpApi()],
     show_tool_calls=True,
-    description="You are a web search agent that helps users find relevant information.",
+    description="You are a search agent that can perform advanced Google and YouTube searches.",
     instructions=[
-        "Given a topic by the user, respond with relevant search results about that topic.",
-        "Search for multiple results and select the most relevant unique items.",
-        "Search in multiple languages when specified.",
-        "Provide structured and well-formatted responses.",
-        "if query about youtube, search for youtube videos and return the only the youtube video links."
+        "Given a query, search using Google or YouTube and return relevant results.",
+        "For YouTube queries, focus on finding video details like title, description, and statistics.",
+        "For Google queries, provide comprehensive search results with snippets and metadata.",
+        "Handle both general web searches and specific YouTube video searches.",
     ],
 )
 
-class SearchRequest(BaseModel):
+class SerpRequest(BaseModel):
     query: str
-    num_results: Optional[int] = 4
-    languages: Optional[List[str]] = ["en"]
+    search_type: Optional[str] = "google"  # "google" or "youtube"
+    num_results: Optional[int] = 5
+    language: Optional[str] = "en"
 
 @router.post("/search")
-async def search_web(request: SearchRequest):
+async def serp_search(request: SerpRequest):
     try:
-        logger.info(f"Processing search query: {request.query}")
+        logger.info(f"Processing {request.search_type} search query: {request.query}")
         
         # Construct the search instruction
-        instruction = f"""Search for {request.num_results} relevant results about: {request.query}
-        Languages to search in: {', '.join(request.languages)}"""
+        instruction = f"""Perform a {request.search_type} search for: {request.query}
+        Number of results: {request.num_results}
+        Language: {request.language}"""
         
         # Set a timeout for the agent's response
         async def run_agent():
-            return web_search_agent.run(
+            return serp_agent.run(
                 instruction,
                 markdown=True
             )

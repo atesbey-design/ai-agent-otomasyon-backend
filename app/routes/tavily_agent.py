@@ -1,50 +1,52 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 import logging
 import asyncio
 from phi.agent import Agent
-from phi.tools.duckduckgo import DuckDuckGo
+from phi.tools.tavily import TavilySearch
 from phi.model.google import Gemini
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/websearch", tags=["websearch"])
+router = APIRouter(prefix="/tavily", tags=["tavily"])
 
-# Initialize the Web Search agent
-web_search_agent = Agent(
+# Initialize the Tavily agent
+tavily_agent = Agent(
     model=Gemini(id="gemini-1.5-flash"),
-    tools=[DuckDuckGo()],
+    tools=[TavilySearch()],
     show_tool_calls=True,
-    description="You are a web search agent that helps users find relevant information.",
+    description="You are a specialized search agent using Tavily's AI-powered search engine.",
     instructions=[
-        "Given a topic by the user, respond with relevant search results about that topic.",
-        "Search for multiple results and select the most relevant unique items.",
-        "Search in multiple languages when specified.",
-        "Provide structured and well-formatted responses.",
-        "if query about youtube, search for youtube videos and return the only the youtube video links."
+        "Use Tavily's search capabilities to find accurate and relevant information.",
+        "Focus on providing high-quality, fact-checked results.",
+        "Include both general web content and news articles when relevant.",
+        "Prioritize recent and authoritative sources.",
     ],
 )
 
-class SearchRequest(BaseModel):
+class TavilyRequest(BaseModel):
     query: str
-    num_results: Optional[int] = 4
-    languages: Optional[List[str]] = ["en"]
+    search_depth: Optional[str] = "basic"  # "basic" or "deep"
+    include_images: Optional[bool] = False
+    include_raw_content: Optional[bool] = False
 
 @router.post("/search")
-async def search_web(request: SearchRequest):
+async def tavily_search(request: TavilyRequest):
     try:
-        logger.info(f"Processing search query: {request.query}")
+        logger.info(f"Processing Tavily search query: {request.query}")
         
         # Construct the search instruction
-        instruction = f"""Search for {request.num_results} relevant results about: {request.query}
-        Languages to search in: {', '.join(request.languages)}"""
+        instruction = f"""Search for information about: {request.query}
+        Search depth: {request.search_depth}
+        Include images: {request.include_images}
+        Include raw content: {request.include_raw_content}"""
         
         # Set a timeout for the agent's response
         async def run_agent():
-            return web_search_agent.run(
+            return tavily_agent.run(
                 instruction,
                 markdown=True
             )
